@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chamados de Suporte — Alfa CEM</title>
+
+<!-- ===== sessao_guard.js (embutido) — igual aos dashboards/ferias. ?demo=1 pré-visualiza ===== -->
+<script>
+(function(){
+  if(window.SessaoGuard) return;
+  var LOGIN_URL = 'index.html';
+  var DEMO = /[?&]demo=1/.test(location.search);
+  function token(){ try{ return sessionStorage.getItem('session_token'); }catch(e){ return null; } }
+  function _css(){
+    if(document.getElementById('sg-css')) return;
+    var css='#sg-overlay{position:fixed;inset:0;z-index:2147483600;background:rgba(16,20,38,.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}'
+      +'#sg-overlay .sg-card{background:#fff;border-radius:20px;box-shadow:0 30px 80px rgba(10,15,40,.45);max-width:430px;width:100%;padding:34px 30px;text-align:center;animation:sgIn .18s ease}'
+      +'@keyframes sgIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}'
+      +'#sg-overlay .sg-ico{width:66px;height:66px;margin:0 auto 16px;border-radius:50%;background:linear-gradient(135deg,#2a1d5e,#3a2a72);display:flex;align-items:center;justify-content:center;font-size:31px;color:#fff}'
+      +'#sg-overlay h2{margin:0 0 9px;font-size:20px;color:#1a2140;font-weight:800}'
+      +'#sg-overlay p{margin:0 0 22px;font-size:14px;line-height:1.55;color:#5a6178}'
+      +'#sg-overlay .sg-btn{border:0;border-radius:12px;background:linear-gradient(120deg,#2a1d5e,#3a2a72);color:#fff;font:inherit;font-size:14px;font-weight:700;padding:12px 28px;cursor:pointer}';
+    var st=document.createElement('style'); st.id='sg-css'; st.textContent=css; document.head.appendChild(st);
+  }
+  function bloquear(titulo,msg){
+    if(!document.body){ document.addEventListener('DOMContentLoaded',function(){bloquear(titulo,msg);}); return; }
+    if(document.getElementById('sg-overlay')) return; _css();
+    var ov=document.createElement('div'); ov.id='sg-overlay';
+    ov.innerHTML='<div class="sg-card"><div class="sg-ico">🔒</div><h2>'+(titulo||'Sessão expirada')+'</h2><p>'+(msg||'Faça login novamente para acessar.')+'</p><button type="button" class="sg-btn">Fazer login</button></div>';
+    document.body.appendChild(ov); ov.querySelector('.sg-btn').onclick=irLogin;
+    try{ document.documentElement.style.overflow='hidden'; }catch(e){}
+  }
+  function irLogin(){ try{ sessionStorage.removeItem('session_token'); sessionStorage.removeItem('usuario_logado'); sessionStorage.removeItem('permissoes'); }catch(e){} window.location.href=LOGIN_URL; }
+  function exigirToken(){ if(DEMO) return true; if(token()) return true; bloquear('Sessão expirada','Você ainda não fez login (ou a sessão expirou). Entre para acessar.'); return false; }
+  if(window.fetch){
+    var _fetch=window.fetch;
+    window.fetch=function(){ return _fetch.apply(this,arguments).then(function(resp){ try{ resp.clone().text().then(function(t){ if(!t) return; var d; try{d=JSON.parse(t);}catch(e){return;} var x=Array.isArray(d)?d[0]:d; if(!DEMO && x && x.sessao_valida===false){ bloquear('Sessão expirada','Sua sessão expirou. Faça login novamente.'); } }).catch(function(){}); }catch(e){} return resp; }); };
+  }
+  window.SessaoGuard={ bloquear:bloquear, exigirToken:exigirToken, irLogin:irLogin, token:token, LOGIN_URL:LOGIN_URL };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',exigirToken); else exigirToken();
+})();
+</script>
+
+<!-- ===== rotaTela() — mapeia arquivo.html -> webhook do n8n (precisa existir ANTES do nav) ===== -->
+<script src="assets/releases.js"></script><script src="assets/portal-nav.js"></script>
+
+<style>
+  :root{
+    --roxo:#8a6aff; --rosa:#d65aa0; --escuro:#2a1d5e;
+    --tinta:#241a4d; --tinta2:#6b648f; --borda:#ebe7f8;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  /* >>> FUNDO PADRAO DO PORTAL. <<< Os mesmos valores do index.html: a camada
+     holografica animada (--holo-1..4) e a mandala fixa no canto. Copiado em vez
+     de inventado porque o portal ja tem identidade — fundo proprio faria esta
+     tela parecer de outro sistema. */
+  :root{ --holo-1:#e8ddff; --holo-2:#ddf5ff; --holo-3:#ffe0f0; --holo-4:#e0ffef;
+         --glass:rgba(255,255,255,.62); }
+  body{margin:0;padding-left:22px;color:var(--tinta);background:#fbfaff;
+    font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif}
+  body::before{
+    content:;position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(60vmax 60vmax at 12% 6%,  var(--holo-1), transparent 60%),
+      radial-gradient(55vmax 55vmax at 90% 10%, var(--holo-2), transparent 60%),
+      radial-gradient(62vmax 62vmax at 86% 94%, var(--holo-3), transparent 62%),
+      radial-gradient(58vmax 58vmax at 8% 92%,  var(--holo-4), transparent 62%),
+      #fbfaff;
+    background-size:200% 200%;
+    animation:holoDrift 22s ease-in-out infinite;
+  }
+  @keyframes holoDrift{0%,100%{background-position:0% 0%}50%{background-position:100% 100%}}
+  @media (prefers-reduced-motion: reduce){ body::before{animation:none} }
+  .mandala-marca{
+    position:fixed;right:-130px;bottom:-130px;z-index:-1;pointer-events:none;
+    width:min(62vmin,560px);height:min(62vmin,560px);
+    transform:rotate(-10deg);transform-origin:bottom right;
+    background:linear-gradient(135deg, rgba(138,106,255,.20), rgba(214,90,160,.10));
+    -webkit-mask:var(--mandala) center/contain no-repeat;mask:var(--mandala) center/contain no-repeat;
+  }
+  @media (max-width:760px){ .mandala-marca{right:-90px;bottom:-90px;width:78vmin;height:78vmin} }
+  .hidden{display:none !important}
+
+  .wrap{max-width:1060px;margin:0 auto;padding:30px 24px 90px}
+
+  /* ---- hero: cartão, não faixa sangrando ---- */
+  .hero{position:relative;overflow:hidden;border-radius:24px;padding:30px 34px;color:#fff;
+    background:linear-gradient(135deg,#241a52 0%,#4a2f9e 52%,#9a5fd4 100%);
+    box-shadow:0 20px 48px rgba(36,26,82,.28);
+    display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+  .hero::after{content:"";position:absolute;right:-56px;bottom:-84px;width:260px;height:260px;opacity:.13;
+    background:#fff;-webkit-mask:var(--mandala) center/contain no-repeat;mask:var(--mandala) center/contain no-repeat}
+  .hero .txt{flex:1;min-width:270px;position:relative;z-index:1}
+  .hero .eyebrow{font-size:.67rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;opacity:.75}
+  .hero h1{margin:7px 0 6px;font-size:1.72rem;font-weight:850;letter-spacing:-.02em;line-height:1.15}
+  .hero p{margin:0;font-size:.88rem;line-height:1.55;opacity:.82;max-width:52ch}
+
+  .kpis{display:flex;gap:10px;position:relative;z-index:1;flex-wrap:wrap}
+  .kpi{min-width:96px;padding:13px 16px;border-radius:15px;text-align:center;
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(2px)}
+  .kpi b{display:block;font-size:1.55rem;font-weight:850;line-height:1.1;font-variant-numeric:tabular-nums}
+  .kpi span{display:block;margin-top:3px;font-size:.63rem;font-weight:800;letter-spacing:.11em;
+    text-transform:uppercase;opacity:.78}
+
+  /* ---- abas ---- */
+  .abas{display:flex;gap:8px;flex-wrap:wrap;margin:26px 0 18px}
+  .aba{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:12px;cursor:pointer;
+    border:1.5px solid rgba(255,255,255,.75);background:var(--glass);
+    backdrop-filter:blur(14px) saturate(170%);-webkit-backdrop-filter:blur(14px) saturate(170%);
+    color:#5a5188;font-size:.85rem;font-weight:800;
+    font-family:inherit;transition:border-color .15s,box-shadow .15s,transform .15s}
+  .aba:hover{border-color:#cfc5f2;transform:translateY(-1px)}
+  .aba.on{background:linear-gradient(135deg,var(--roxo),var(--rosa));border-color:transparent;color:#fff;
+    box-shadow:0 8px 20px rgba(138,106,255,.3)}
+  .aba b{font-size:.72rem;font-weight:850;padding:2px 8px;border-radius:999px;background:#f1edfd;color:#6b5bd6;
+    font-variant-numeric:tabular-nums}
+  .aba.on b{background:rgba(255,255,255,.26);color:#fff}
+
+  /* ---- cartão do chamado ---- */
+  .card{position:relative;background:var(--glass);backdrop-filter:blur(18px) saturate(170%);
+    -webkit-backdrop-filter:blur(18px) saturate(170%);border:1.5px solid rgba(255,255,255,.7);border-radius:18px;
+    padding:20px 22px 18px 26px;margin-bottom:14px;box-shadow:0 6px 20px rgba(36,26,82,.06);
+    transition:box-shadow .18s,transform .18s}
+  .card:hover{box-shadow:0 12px 30px rgba(36,26,82,.10);transform:translateY(-1px)}
+  .card::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:4px;border-radius:0 4px 4px 0}
+  .card.s-aberto::before{background:linear-gradient(180deg,#f0568c,#d6306e)}
+  .card.s-em_analise::before{background:linear-gradient(180deg,#f7b955,#e8920c)}
+  .card.s-resolvido::before{background:linear-gradient(180deg,#3fc79a,#0e9f6e)}
+  .card.s-descartado::before{background:linear-gradient(180deg,#c9c3e4,#9a92c4)}
+
+  .cab{display:flex;gap:13px;align-items:center;flex-wrap:wrap}
+  .av{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;overflow:hidden;
+    background:linear-gradient(135deg,#ece6ff,#fbe6f1);background-size:cover;background-position:center;
+    color:#7b55f0;font-size:.8rem;font-weight:850}
+  .quem{flex:1;min-width:200px}
+  .quem b{display:block;font-size:1rem;font-weight:800;line-height:1.25}
+  .quem small{display:block;color:var(--tinta2);font-size:.79rem;margin-top:3px}
+  /* o e-mail identifica sem ambiguidade quem abriu — nome se repete, e-mail não */
+  .quem small.mail{color:#7b55f0;font-weight:700;margin-top:2px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:999px;
+    font-size:.71rem;font-weight:850;letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+  .p-aberto{background:#fdecf1;color:#9c1f45}
+  .p-em_analise{background:#fff4e2;color:#96590a}
+  .p-resolvido{background:#e7f8f0;color:#0b6b48}
+  .p-descartado{background:#efedf7;color:#5f5883}
+
+  .bloco{margin-top:14px;padding:14px 16px;border-radius:14px;background:#fbfaff;border:1px solid #f1edfb}
+  .bloco h4{margin:0 0 8px;font-size:.67rem;font-weight:850;letter-spacing:.11em;text-transform:uppercase;color:#9a92c4}
+  .nomes{display:flex;flex-wrap:wrap;gap:7px}
+  .nome{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:7px 12px;font-size:.83rem;font-weight:700}
+  .nome i{font-style:normal;color:var(--tinta2);font-weight:500}
+  .dados{font-size:.88rem;line-height:1.65}
+  .dados span{color:var(--tinta2)}
+  .obs{font-size:.87rem;line-height:1.6;color:#4a4270;white-space:pre-wrap}
+
+  .acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:15px;border-top:1px solid #f3f0fb}
+  .bt{padding:9px 16px;border-radius:11px;border:1.5px solid var(--borda);background:#fff;cursor:pointer;
+    font-size:.82rem;font-weight:800;color:#5a5188;font-family:inherit;transition:background .15s,border-color .15s}
+  .bt:hover{background:#f8f6ff;border-color:#cfc5f2}
+  .bt.pri{background:linear-gradient(135deg,var(--roxo),var(--rosa));border-color:transparent;color:#fff;
+    box-shadow:0 7px 18px rgba(138,106,255,.3)}
+  .bt.pri:hover{filter:brightness(1.06)}
+  .bt[disabled]{opacity:.5;cursor:default;filter:none}
+
+  /* ---- estados ---- */
+  .vazio{background:var(--glass);backdrop-filter:blur(18px) saturate(170%);
+    -webkit-backdrop-filter:blur(18px) saturate(170%);border:1.5px dashed rgba(138,106,255,.28);border-radius:20px;padding:56px 30px;text-align:center}
+  .vazio .ico{width:62px;height:62px;margin:0 auto 16px;border-radius:50%;display:grid;place-items:center;
+    background:linear-gradient(135deg,#f0ebff,#fbe9f3);color:#7b55f0}
+  .vazio b{display:block;font-size:1.06rem;font-weight:850;margin-bottom:6px}
+  .vazio p{margin:0;color:var(--tinta2);font-size:.88rem;line-height:1.55}
+  .carregando{display:flex;align-items:center;justify-content:center;gap:11px;padding:56px 20px;
+    color:var(--tinta2);font-size:.9rem;font-weight:700}
+  .spin{width:19px;height:19px;border-radius:50%;border:2.5px solid #e4ddf8;border-top-color:var(--roxo);
+    animation:gira .7s linear infinite}
+  @keyframes gira{to{transform:rotate(360deg)}}
+  .aviso{padding:18px 20px;border-radius:16px;background:#fdecf1;color:#9c1f45;border:1px solid #f7cfdc;
+    font-size:.9rem;font-weight:750;line-height:1.5}
+
+  @media(max-width:760px){
+    body{padding-left:0}
+    .wrap{padding:20px 16px 80px}
+    .hero{padding:24px 22px;border-radius:20px}
+    .hero h1{font-size:1.45rem}
+    .kpis{width:100%}
+    .kpi{flex:1;min-width:0}
+  }
+</style>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+</head>
+<body>
+<div class="mandala-marca" aria-hidden="true"></div>
+
+<main class="wrap">
+
+  <section class="hero">
+    <div class="txt">
+      <span class="eyebrow">Administração do portal</span>
+      <h1>Chamados de suporte</h1>
+      <p>O que as equipes relataram pelo menu Suporte: quem abriu, de qual tela e o que está errado.</p>
+    </div>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <div class="abas" id="abas"></div>
+  <div id="conteudo"><div class="carregando"><span class="spin"></span>Carregando chamados…</div></div>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var API = "/webhook";
+
+  var ROTULO = { aberto:'Abertos', em_analise:'Em análise', resolvido:'Resolvidos', descartado:'Descartados', todos:'Todos' };
+  var ORDEM  = ['aberto','em_analise','resolvido','descartado','todos'];
+  var filtro = 'aberto';
+  var FOTOS  = { fotos:{}, por_email:{} };
+
+  function tok(){ try{ return sessionStorage.getItem('session_token') || ''; }catch(e){ return ''; } }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function post(rota, corpo){
+    var t = tok();
+    return fetch(API + rota, { method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + t },
+      body: JSON.stringify(Object.assign({}, corpo||{}, { token:t }))
+    }).then(function(r){ return r.text(); }).then(function(x){
+      if(!x) return {}; try{ return JSON.parse(x); }catch(e){ return {}; }
+    });
+  }
+  function um(r){ return Array.isArray(r) ? (r[0]||{}) : (r||{}); }
+
+  /* mesma fonte de fotos das outras telas (cache da sessão) */
+  try{ var c = sessionStorage.getItem('fotos_map');
+       if(c){ var j = JSON.parse(c); FOTOS = { fotos:j.fotos||{}, por_email:j.por_email||{} }; } }catch(e){}
+  function iniciais(n){
+    var p = String(n||'').trim().split(/\s+/).filter(function(x){ return x.length>2; });
+    if(!p.length) return '?';
+    return ((p[0][0]||'') + (p.length>1 ? (p[p.length-1][0]||'') : '')).toUpperCase();
+  }
+  function fotoPor(email){ return (email && FOTOS.por_email[String(email).toLowerCase()]) || ''; }
+
+  function dataBR(iso){
+    if(!iso) return '';
+    var d = new Date(iso); if(isNaN(d)) return String(iso).slice(0,16).replace('T',' ');
+    var p = function(n){ return String(n).padStart(2,'0'); };
+    return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' às '+p(d.getHours())+':'+p(d.getMinutes());
+  }
+
+  /* os números do topo saem da MESMA contagem das abas — um só número por
+     status, para as duas leituras nunca discordarem */
+  function kpis(cont){
+    var el = document.getElementById('kpis'); if(!el) return;
+    var tot = Object.keys(cont||{}).reduce(function(a,k){ return a + (cont[k]||0); }, 0);
+    var dados = [
+      { n:(cont && cont.aberto) || 0,      r:'Abertos' },
+      { n:(cont && cont.em_analise) || 0,  r:'Em análise' },
+      { n:(cont && cont.resolvido) || 0,   r:'Resolvidos' },
+      { n:tot,                             r:'Total' }
+    ];
+    el.innerHTML = dados.map(function(d){
+      return '<div class="kpi"><b>' + d.n + '</b><span>' + esc(d.r) + '</span></div>';
+    }).join('');
+  }
+
+  function abas(cont){
+    var el = document.getElementById('abas');
+    el.innerHTML = ORDEM.map(function(k){
+      var n = (k === 'todos')
+        ? Object.keys(cont||{}).reduce(function(a,x){ return a + (cont[x]||0); },0)
+        : (cont && cont[k]) || 0;
+      return '<button class="aba' + (filtro===k?' on':'') + '" data-f="' + k + '" type="button">'
+        + esc(ROTULO[k]) + '<b>' + n + '</b></button>';
+    }).join('');
+    Array.prototype.forEach.call(el.querySelectorAll('.aba'), function(b){
+      b.addEventListener('click', function(){ filtro = this.dataset.f; carregar(); });
+    });
+  }
+
+  function cartao(c){
+    var f = fotoPor(c.autor_email);
+    var itens = Array.isArray(c.itens) ? c.itens : [];
+    var pes = c.pessoa || {};
+    var problema = (c.subtipo === 'vejo_indevido') ? 'Vê pessoas que não deveria'
+                 : (c.subtipo === 'nao_vejo')       ? 'Não vê alguém que deveria'
+                 : 'Outro assunto';
+
+    var corpo = '';
+    if(itens.length){
+      corpo += '<div class="bloco"><h4>Marcou como indevido</h4><div class="nomes">'
+        + itens.map(function(i){
+            return '<span class="nome">' + esc(i.nome || '')
+              + (i.detalhe ? ' <i>· ' + esc(i.detalhe) + '</i>' : '') + '</span>';
+          }).join('')
+        + '</div></div>';
+    }
+    if(pes && pes.nome){
+      var linhas = [];
+      if(pes.cargo)    linhas.push('<span>Cargo:</span> ' + esc(pes.cargo));
+      if(pes.ano)      linhas.push('<span>Ano/série:</span> ' + esc(pes.ano));
+      if(pes.materia)  linhas.push('<span>Matéria:</span> ' + esc(pes.materia));
+      if(pes.segmento) linhas.push('<span>Segmento:</span> ' + esc(pes.segmento));
+      if(pes.area)     linhas.push('<span>Área:</span> ' + esc(pes.area));
+      if(pes.unidade)  linhas.push('<span>Unidade:</span> ' + esc(pes.unidade));
+      corpo += '<div class="bloco"><h4>Quem está faltando</h4><div class="dados"><b>' + esc(pes.nome) + '</b>'
+        + (linhas.length ? '<br>' + linhas.join(' &nbsp;·&nbsp; ') : '') + '</div></div>';
+    }
+    if(c.observacao){
+      // no 'outro' o texto NÃO é um complemento: é o chamado inteiro, e chamar
+      // de "Observação" faria parecer que o relato principal ficou faltando
+      var tit = (c.subtipo === 'outro') ? 'O que foi relatado' : 'Observação';
+      corpo += '<div class="bloco"><h4>' + tit + '</h4><div class="obs">' + esc(c.observacao) + '</div></div>';
+    }
+    if(c.resolucao){
+      corpo += '<div class="bloco"><h4>Resolução</h4><div class="obs">' + esc(c.resolucao)
+        + (c.resolvido_por_nome ? '<br><small>— ' + esc(c.resolvido_por_nome) + '</small>' : '') + '</div></div>';
+    }
+
+    var acoes = ['em_analise','resolvido','descartado','aberto'].filter(function(s){ return s !== c.status; })
+      .map(function(s){
+        return '<button class="bt' + (s==='resolvido'?' pri':'') + '" data-id="' + esc(c.id) + '" data-s="' + s + '" type="button">'
+          + (s==='aberto' ? 'Reabrir' : 'Marcar ' + ROTULO[s].toLowerCase().replace(/s$/,'')) + '</button>';
+      }).join('');
+
+    return '<article class="card s-' + esc(c.status) + '">'
+      + '<div class="cab">'
+      +   '<div class="av"' + (f ? ' style="background-image:url(' + esc(f) + ')"' : '') + '>' + (f ? '' : esc(iniciais(c.autor_nome))) + '</div>'
+      +   '<div class=quem><b>' + esc(c.autor_nome) + '</b>'
+      +     (c.autor_email ? '<small class=mail>' + esc(c.autor_email) + '</small>' : '')
+      +     '<small>' + esc(problema) + ' · ' + dataBR(c.criado_em)
+      +     (c.tela_origem ? ' · tela: ' + esc(c.tela_origem) : '') + '</small></div>'
+      +   '<span class="pill p-' + esc(c.status) + '">' + esc(ROTULO[c.status] || c.status).replace(/s$/,'') + '</span>'
+      + '</div>'
+      + corpo
+      + '<div class="acoes">' + acoes + '</div>'
+      + '</article>';
+  }
+
+  function ligarAcoes(){
+    Array.prototype.forEach.call(document.querySelectorAll('.acoes .bt'), function(b){
+      b.addEventListener('click', function(){
+        var btn = this;
+        Array.prototype.forEach.call(document.querySelectorAll('.acoes .bt'), function(x){ x.disabled = true; });
+        post('/suporte/chamados', { acao:'atualizar', chamado_id:btn.dataset.id, status:btn.dataset.s, filtro:filtro })
+          .then(function(r){ render(um(r)); })
+          .catch(function(){ carregar(); });
+      });
+    });
+  }
+
+  function render(d){
+    abas(d.contagem || {});
+    kpis(d.contagem || {});
+    var alvo = document.getElementById('conteudo');
+    if(d.pode_ver === false || d.sessao_valida === false){
+      alvo.innerHTML = '<div class="aviso">' + esc(d.mensagem || 'Sem permissão para ver os chamados.') + '</div>';
+      return;
+    }
+    var lista = Array.isArray(d.chamados) ? d.chamados : [];
+    if(!lista.length){
+      var ICO_OK = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+        + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+      alvo.innerHTML = '<div class="vazio"><div class="ico">' + ICO_OK + '</div>'
+        + '<b>Nenhum chamado ' + esc((ROTULO[filtro]||'').toLowerCase()) + '</b>'
+        + '<p>Quando alguém relatar um problema pelo menu Suporte, ele aparece aqui.</p></div>';
+      return;
+    }
+    alvo.innerHTML = lista.map(cartao).join('');
+    ligarAcoes();
+  }
+
+  function carregar(){
+    document.getElementById('conteudo').innerHTML =
+      '<div class="carregando"><span class="spin"></span>Carregando chamados…</div>';
+    post('/suporte/chamados', { filtro:filtro }).then(function(r){ render(um(r)); })
+      .catch(function(){
+        document.getElementById('conteudo').innerHTML =
+          '<div class="aviso">Não consegui carregar os chamados agora. Tente recarregar a página.</div>';
+      });
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', carregar);
+  else carregar();
+})();
+</script>
+</body>
+</html>

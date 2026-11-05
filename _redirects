@@ -1,0 +1,10 @@
+# URLs antigas -> novas (25/09/2026): o nome do arquivo e a URL no Pages,
+# e as abreviacoes (v1, doc, sup, du, dp) apareciam no endereco publico.
+# Mantido para quem copiou algum link nas primeiras horas.
+/dashboard_geral_v1        /dashboard_geral                        301
+/dashboard_doc_individual  /dashboard_docente_individual           301
+/dashboard_sup_individual  /dashboard_supervisao_individual        301
+/dashboard_du_individual   /dashboard_direcao_unidade_individual   301
+/dashboard_dp_individual   /dashboard_direcao_pedagogica_individual 301
+/formulario_du             /formulario_direcao_unidade              301
+/formulario_dp             /formulario_direcao_pedagogica           301

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atualizações da plataforma — Alfa CEM</title>
+
+<!-- ===== sessao_guard.js (embutido) — igual aos dashboards/ferias. ?demo=1 pré-visualiza ===== -->
+<script>
+(function(){
+  if(window.SessaoGuard) return;
+  var LOGIN_URL = 'index.html';
+  var DEMO = /[?&]demo=1/.test(location.search);
+  function token(){ try{ return sessionStorage.getItem('session_token'); }catch(e){ return null; } }
+  function _css(){
+    if(document.getElementById('sg-css')) return;
+    var css='#sg-overlay{position:fixed;inset:0;z-index:2147483600;background:rgba(16,20,38,.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}'
+      +'#sg-overlay .sg-card{background:#fff;border-radius:20px;box-shadow:0 30px 80px rgba(10,15,40,.45);max-width:430px;width:100%;padding:34px 30px;text-align:center;animation:sgIn .18s ease}'
+      +'@keyframes sgIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}'
+      +'#sg-overlay .sg-ico{width:66px;height:66px;margin:0 auto 16px;border-radius:50%;background:linear-gradient(135deg,#2a1d5e,#3a2a72);display:flex;align-items:center;justify-content:center;font-size:31px;color:#fff}'
+      +'#sg-overlay h2{margin:0 0 9px;font-size:20px;color:#1a2140;font-weight:800}'
+      +'#sg-overlay p{margin:0 0 22px;font-size:14px;line-height:1.55;color:#5a6178}'
+      +'#sg-overlay .sg-btn{border:0;border-radius:12px;background:linear-gradient(120deg,#2a1d5e,#3a2a72);color:#fff;font:inherit;font-size:14px;font-weight:700;padding:12px 28px;cursor:pointer}';
+    var st=document.createElement('style'); st.id='sg-css'; st.textContent=css; document.head.appendChild(st);
+  }
+  function bloquear(titulo,msg){
+    if(!document.body){ document.addEventListener('DOMContentLoaded',function(){bloquear(titulo,msg);}); return; }
+    if(document.getElementById('sg-overlay')) return; _css();
+    var ov=document.createElement('div'); ov.id='sg-overlay';
+    ov.innerHTML='<div class="sg-card"><div class="sg-ico">🔒</div><h2>'+(titulo||'Sessão expirada')+'</h2><p>'+(msg||'Faça login novamente para acessar.')+'</p><button type="button" class="sg-btn">Fazer login</button></div>';
+    document.body.appendChild(ov); ov.querySelector('.sg-btn').onclick=irLogin;
+    try{ document.documentElement.style.overflow='hidden'; }catch(e){}
+  }
+  function irLogin(){ try{ sessionStorage.removeItem('session_token'); sessionStorage.removeItem('usuario_logado'); sessionStorage.removeItem('permissoes'); }catch(e){} window.location.href=LOGIN_URL; }
+  function exigirToken(){ if(DEMO) return true; if(token()) return true; bloquear('Sessão expirada','Você ainda não fez login (ou a sessão expirou). Entre para acessar.'); return false; }
+  if(window.fetch){
+    var _fetch=window.fetch;
+    window.fetch=function(){ return _fetch.apply(this,arguments).then(function(resp){ try{ resp.clone().text().then(function(t){ if(!t) return; var d; try{d=JSON.parse(t);}catch(e){return;} var x=Array.isArray(d)?d[0]:d; if(!DEMO && x && x.sessao_valida===false){ bloquear('Sessão expirada','Sua sessão expirou. Faça login novamente.'); } }).catch(function(){}); }catch(e){} return resp; }); };
+  }
+  window.SessaoGuard={ bloquear:bloquear, exigirToken:exigirToken, irLogin:irLogin, token:token, LOGIN_URL:LOGIN_URL };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',exigirToken); else exigirToken();
+})();
+</script>
+
+<!-- ===== rotaTela() — mapeia arquivo.html -> webhook do n8n (precisa existir ANTES do nav) ===== -->
+<script src="assets/releases.js"></script><script src="assets/portal-nav.js"></script>
+<style>
+  :root{
+    --roxo:#8a6aff; --rosa:#d65aa0; --escuro:#2a1d5e;
+    --tinta:#241a4d; --tinta2:#6b648f; --borda:#ebe7f8;
+    --holo-1:#e8ddff; --holo-2:#ddf5ff; --holo-3:#ffe0f0; --holo-4:#e0ffef;
+    --glass:rgba(255,255,255,.62);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  /* mesmo fundo do resto do portal: tela com fundo próprio pareceria de outro sistema */
+  body{margin:0;padding-left:22px;color:var(--tinta);background:#fbfaff;
+    font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif}
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(60vmax 60vmax at 12% 6%,  var(--holo-1), transparent 60%),
+      radial-gradient(55vmax 55vmax at 90% 10%, var(--holo-2), transparent 60%),
+      radial-gradient(62vmax 62vmax at 86% 94%, var(--holo-3), transparent 62%),
+      radial-gradient(58vmax 58vmax at 8% 92%,  var(--holo-4), transparent 62%),
+      #fbfaff;
+    background-size:200% 200%;
+    animation:holoDrift 22s ease-in-out infinite;
+  }
+  @keyframes holoDrift{0%,100%{background-position:0% 0%}50%{background-position:100% 100%}}
+  @media (prefers-reduced-motion: reduce){ body::before{animation:none} }
+  .mandala-marca{
+    position:fixed;right:-130px;bottom:-130px;z-index:-1;pointer-events:none;
+    width:min(62vmin,560px);height:min(62vmin,560px);
+    transform:rotate(-10deg);transform-origin:bottom right;
+    background:linear-gradient(135deg, rgba(138,106,255,.20), rgba(214,90,160,.10));
+    -webkit-mask:var(--mandala) center/contain no-repeat;mask:var(--mandala) center/contain no-repeat;
+  }
+  @media (max-width:760px){ .mandala-marca{right:-90px;bottom:-90px;width:78vmin;height:78vmin} }
+
+  .wrap{max-width:980px;margin:0 auto;padding:30px 24px 90px}
+
+  .hero{position:relative;overflow:hidden;border-radius:24px;padding:30px 34px;color:#fff;
+    background:linear-gradient(135deg,#241a52 0%,#4a2f9e 52%,#9a5fd4 100%);
+    box-shadow:0 20px 48px rgba(36,26,82,.28);
+    display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+  .hero::after{content:"";position:absolute;right:-56px;bottom:-84px;width:260px;height:260px;opacity:.13;
+    background:#fff;-webkit-mask:var(--mandala) center/contain no-repeat;mask:var(--mandala) center/contain no-repeat}
+  .hero .txt{flex:1;min-width:270px;position:relative;z-index:1}
+  .hero .eyebrow{font-size:.67rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;opacity:.75}
+  .hero h1{margin:7px 0 6px;font-size:1.72rem;font-weight:850;letter-spacing:-.02em;line-height:1.15}
+  .hero p{margin:0;font-size:.88rem;line-height:1.55;opacity:.82;max-width:54ch}
+  .kpis{display:flex;gap:10px;position:relative;z-index:1;flex-wrap:wrap}
+  .kpi{min-width:104px;padding:13px 16px;border-radius:15px;text-align:center;
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18)}
+  .kpi b{display:block;font-size:1.5rem;font-weight:850;line-height:1.1;font-variant-numeric:tabular-nums}
+  .kpi span{display:block;margin-top:3px;font-size:.62rem;font-weight:800;letter-spacing:.11em;
+    text-transform:uppercase;opacity:.78}
+
+  h2.sec{margin:34px 0 4px;font-size:1.05rem;font-weight:850;letter-spacing:-.01em}
+  p.sec{margin:0 0 18px;font-size:.85rem;color:var(--tinta2);line-height:1.6;max-width:70ch}
+
+  /* ---- linha do tempo das releases ---- */
+  .linha{position:relative;padding-left:26px}
+  .linha::before{content:"";position:absolute;left:7px;top:10px;bottom:10px;width:2px;
+    background:linear-gradient(180deg,var(--roxo),rgba(214,90,160,.25))}
+  .rel{position:relative;margin-bottom:16px}
+  .rel::before{content:"";position:absolute;left:-23px;top:22px;width:12px;height:12px;border-radius:50%;
+    background:linear-gradient(135deg,var(--roxo),var(--rosa));border:2.5px solid #fff;
+    box-shadow:0 0 0 2px rgba(138,106,255,.22)}
+  .cartao{border-radius:18px;border:1px solid rgba(255,255,255,.8);background:var(--glass);
+    backdrop-filter:blur(6px);box-shadow:0 10px 30px rgba(36,26,82,.08);overflow:hidden}
+  .rel-hd{display:flex;align-items:center;gap:12px;padding:17px 20px;flex-wrap:wrap}
+  .rel-data{flex:none;font-size:.7rem;font-weight:850;letter-spacing:.06em;color:#7b55f0;
+    background:#f3efff;border-radius:99px;padding:5px 11px;font-variant-numeric:tabular-nums}
+  .rel-hd h3{flex:1;min-width:180px;margin:0;font-size:1rem;font-weight:850;letter-spacing:-.01em}
+  .rel-qt{flex:none;font-size:.72rem;font-weight:700;color:var(--tinta2)}
+  .rel-resumo{padding:0 20px 16px;margin:0;font-size:.85rem;line-height:1.6;color:var(--tinta2)}
+  .rel-itens{border-top:1px solid var(--borda);background:rgba(255,255,255,.5)}
+  .it{border-bottom:1px solid var(--borda)}
+  .it:last-child{border-bottom:0}
+  .it-bt{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:0;background:none;
+    cursor:pointer;font:inherit;padding:13px 20px;color:var(--tinta)}
+  .it-bt:hover{background:#f7f4ff}
+  .it-ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+    background:#f3efff;font-size:15px}
+  .it-tx{flex:1;min-width:0}
+  .it-tx b{display:block;font-size:.87rem;font-weight:800;line-height:1.35}
+  .it-tx small{display:block;font-size:.76rem;color:var(--tinta2);margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .it-seta{flex:none;color:#b9b1da;font-size:1.05rem;transition:transform .18s ease}
+  .it.aberto .it-seta{transform:rotate(90deg)}
+  .it-corpo{display:none;padding:0 20px 18px 61px}
+  .it.aberto .it-corpo{display:block}
+  .it-corpo p{margin:0 0 13px;font-size:.85rem;line-height:1.65;color:#5a5188}
+  .it-corpo ol{margin:0;padding:0;list-style:none;counter-reset:pa}
+  .it-corpo ol li{counter-increment:pa;position:relative;padding:0 0 11px 32px;font-size:.84rem;line-height:1.6}
+  .it-corpo ol li::before{content:counter(pa);position:absolute;left:0;top:-1px;width:22px;height:22px;
+    border-radius:50%;display:grid;place-items:center;font-size:.68rem;font-weight:850;color:#fff;
+    background:linear-gradient(135deg,var(--roxo),var(--rosa))}
+  .it-corpo ol li:last-child{padding-bottom:0}
+
+  /* ---- sobre a plataforma ---- */
+  .sobre{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(232px,1fr))}
+  .sb{border-radius:16px;border:1px solid rgba(255,255,255,.8);background:var(--glass);padding:18px 19px;
+    box-shadow:0 8px 24px rgba(36,26,82,.06)}
+  .sb i{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:#f3efff;
+    font-style:normal;font-size:16px;margin-bottom:10px}
+  .sb b{display:block;font-size:.88rem;font-weight:850;margin-bottom:5px}
+  .sb p{margin:0;font-size:.81rem;line-height:1.6;color:var(--tinta2)}
+
+  .vazio{border-radius:18px;border:1px dashed #d9d2f0;background:rgba(255,255,255,.55);
+    padding:40px 24px;text-align:center;color:var(--tinta2);font-size:.88rem;line-height:1.6}
+
+  @media(max-width:700px){
+    body{padding-left:0}
+    .wrap{padding:20px 16px 80px}
+    .hero{padding:24px 20px;border-radius:20px}
+    .hero h1{font-size:1.36rem}
+    .it-corpo{padding-left:20px}
+  }
+  @media print{ .mandala-marca,body::before{display:none} }
+</style>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+</head>
+<body>
+<span class="mandala-marca" aria-hidden="true"></span>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="txt">
+      <span class="eyebrow">Portal de Avaliações</span>
+      <h1>Atualizações da plataforma</h1>
+      <p>Tudo o que mudou no portal, por data, com o passo a passo de cada novidade.
+         Abaixo do histórico, um resumo do que a plataforma faz hoje.</p>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><b id="kpi-rel">—</b><span>Atualizações</span></div>
+      <div class="kpi"><b id="kpi-nov">—</b><span>Novidades</span></div>
+      <div class="kpi"><b id="kpi-ult">—</b><span>Última</span></div>
+    </div>
+  </section>
+
+  <h2 class="sec">Histórico</h2>
+  <p class="sec">Da mais recente para a mais antiga. Clique em uma novidade para ver o passo a passo.</p>
+  <div class="linha" id="linha"></div>
+
+  <h2 class="sec">Sobre a plataforma</h2>
+  <p class="sec">Em poucas linhas, o que o portal resolve e como as partes se encaixam.</p>
+  <div class="sobre">
+    <div class="sb"><i>📋</i><b>Avaliações da equipe pedagógica</b>
+      <p>Um instrumento por cargo — docente, supervisão, direção de unidade, direção pedagógica e
+         coordenação de área — com os mesmos critérios para toda a rede, preenchidos direto na tela.</p></div>
+    <div class="sb"><i>🗓️</i><b>Devolutiva com data</b>
+      <p>Depois da avaliação vem a conversa. O relatório pode ser escrito com antecedência e a
+         conclusão fica marcada para o dia combinado, junto do plano de ação.</p></div>
+    <div class="sb"><i>📊</i><b>Painéis de acompanhamento</b>
+      <p>O andamento da rede, o painel de cada pessoa e o comparativo entre pares — sempre no recorte
+         de quem está olhando: cada gestor vê a sua equipe.</p></div>
+    <div class="sb"><i>🏖️</i><b>Controle de férias</b>
+      <p>Pedido, aprovação e documento de férias no mesmo lugar, com o histórico de cada pessoa.</p></div>
+    <div class="sb"><i>👥</i><b>Gestão de pessoas</b>
+      <p>O organograma da rede por unidade: quem responde por quem, e quem avalia quem.</p></div>
+    <div class="sb"><i>🛟</i><b>Suporte dentro do portal</b>
+      <p>Um canal para avisar que a sua lista de pessoas está errada — ou qualquer outro assunto.
+         A resposta volta pelo sino da tela inicial.</p></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  /* A LISTA VEM DO assets/releases.js — a mesma que alimenta o mural da tela
+     inicial. Duas listas dariam duas versões da história do portal. */
+  var RELEASES = window.PORTAL_RELEASES || [];
+
+  function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  /* d e p vêm da nossa própria lista e trazem <b> de propósito — por isso vão
+     crus; o que a pessoa digita nunca passa por aqui. */
+  function cru(v){ return String(v==null?'':v); }
+  function semTags(v){ return String(v==null?'':v).replace(/<[^>]*>/g,''); }
+
+  var linha = document.getElementById('linha');
+
+  function pinta(){
+    if(!RELEASES.length){
+      linha.className = '';
+      linha.innerHTML = '<div class="vazio">Ainda não há atualizações registradas.</div>';
+      return;
+    }
+    var novidades = 0;
+    linha.innerHTML = RELEASES.map(function(r, ri){
+      var itens = r.itens || [];
+      novidades += itens.length;
+      return '<div class="rel"><div class="cartao">'
+        + '<div class="rel-hd">'
+        +   '<span class="rel-data">' + esc(r.data) + '</span>'
+        +   '<h3>' + esc(r.titulo) + '</h3>'
+        +   '<span class="rel-qt">' + itens.length + (itens.length === 1 ? ' novidade' : ' novidades') + '</span>'
+        + '</div>'
+        + (r.resumo ? '<p class="rel-resumo">' + cru(r.resumo) + '</p>' : '')
+        + '<div class="rel-itens">'
+        +   itens.map(function(it, ii){
+              return '<div class="it" id="it-' + ri + '-' + ii + '">'
+                + '<button class="it-bt" type="button" data-r="' + ri + '" data-i="' + ii + '" aria-expanded="false">'
+                +   '<span class="it-ic">' + esc(it.ic || '•') + '</span>'
+                +   '<span class="it-tx"><b>' + esc(it.t) + '</b>'
+                +     '<small>' + esc(semTags(it.d).slice(0, 110)) + '…</small></span>'
+                +   '<span class="it-seta">&rsaquo;</span>'
+                + '</button>'
+                + '<div class="it-corpo"><p>' + cru(it.d) + '</p>'
+                +   (it.p && it.p.length
+                      ? '<ol>' + it.p.map(function(x){ return '<li>' + cru(x) + '</li>'; }).join('') + '</ol>' : '')
+                + '</div></div>';
+            }).join('')
+        + '</div></div></div>';
+    }).join('');
+
+    document.getElementById('kpi-rel').textContent = RELEASES.length;
+    document.getElementById('kpi-nov').textContent = novidades;
+    document.getElementById('kpi-ult').textContent = (RELEASES[0].data || '—').slice(0, 5);
+
+    Array.prototype.forEach.call(linha.querySelectorAll('.it-bt'), function(b){
+      b.addEventListener('click', function(){
+        var cx = this.parentNode;
+        var abre = cx.className.indexOf('aberto') === -1;
+        cx.className = abre ? 'it aberto' : 'it';
+        this.setAttribute('aria-expanded', abre ? 'true' : 'false');
+      });
+    });
+
+    /* a primeira novidade da release mais nova já vem aberta: quem entra aqui
+       quase sempre quer ver o que mudou agora, não caçar cliques */
+    var p = linha.querySelector('.it');
+    if(p){ p.className = 'it aberto'; p.querySelector('.it-bt').setAttribute('aria-expanded','true'); }
+  }
+
+  pinta();
+})();
+</script>
+</body>
+</html>

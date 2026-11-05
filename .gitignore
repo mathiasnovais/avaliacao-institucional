@@ -1,0 +1,36 @@
+# segredos e configuracao real
+.env
+.env.*
+!.env.exemplo
+!.env.example
+.dev.vars
+!.dev.vars.exemplo
+segredo*
+config.js
+!config.exemplo.js
+
+# cache do wrangler (guarda o id da conta)
+.wrangler/
+
+# dados pessoais: planilhas, listas, importacoes
+*.xlsx
+*.xls
+*.csv
+*.pdf
+*.docx
+*_staging_*
+*.zip
+
+# backups de trabalho
+*.bak
+*.bak_*
+_backup*/
+_bak*/
+_original/
+
+# ferramentas e temporarios
+node_modules/
+.vscode/
+*.log
+Thumbs.db
+.DS_Store
